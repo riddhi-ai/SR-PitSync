@@ -1,5 +1,5 @@
 /* api.js: the ONLY file that talks to the backend. Change API_BASE when you deploy. */
-const API_BASE='http://127.0.0.1:8000';
+const API_BASE='https://sr-pitsync.onrender.com';
 const getToken=()=>{try{return localStorage.getItem('pitsync-token')}catch(e){return null}};
 const setToken=t=>{try{t?localStorage.setItem('pitsync-token',t):localStorage.removeItem('pitsync-token')}catch(e){}};
 const imgUrl=p=>!p?'':p.startsWith('http')?p:API_BASE+p;
