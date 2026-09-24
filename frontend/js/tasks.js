@@ -1,0 +1,13 @@
+/* tasks.js: coordinators assign, members update */
+const loadTasks=async()=>{S.tasks=await api('/tasks')};
+function tasksV(){const co=S.me.is_coordinator;
+ const f=co?`<h2>Assign a task</h2><div class="card"><label for="tm">Member</label><select id="tm">${roster().map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select><label for="tt">Task</label><input id="tt" maxlength="120" placeholder="e.g. Fit the front brake calipers"><label for="td">Due date</label><input type="date" id="td" value="${todayStr()}"><p><button class="pri" id="ta">Assign and email</button></p></div>`:'';
+ return f+`<h2>${co?'All tasks':'My tasks'}</h2>${S.tasks.length?'':'<p class="mu">No tasks yet.</p>'}<div class="grid">${S.tasks.map(t=>`<div class="card"><b>${esc(t.title)}</b><div class="mu">${co?'For '+esc(t.assignee_name)+' · ':''}Due ${t.due_date}</div>${bar(t.progress)}
+${co?`<span class="pill" style="--c:var(--g)">${TS[t.status]} · ${t.progress}%</span><p class="mu">${esc(t.notes||'No notes')}</p><button class="dng" data-del="${t.id}">Delete</button>`:`<label>Status</label><select data-s="${t.id}">${Object.keys(TS).map(k=>`<option value="${k}" ${t.status===k?'selected':''}>${TS[k]}</option>`).join('')}</select><label>Progress: <span id="pv${t.id}">${t.progress}</span>%</label><input type="range" min="0" max="100" step="5" value="${t.progress}" data-p="${t.id}"><label>Notes</label><textarea rows="2" maxlength="500" data-n="${t.id}">${esc(t.notes)}</textarea><p><button class="pri" data-save="${t.id}">Save update</button></p>`}</div>`).join('')}</div>`}
+function tasksB(){const q=(s,f)=>document.querySelectorAll(s).forEach(f);
+ const ta=$('#ta');if(ta)ta.onclick=()=>run(async()=>{const title=$('#tt').value.trim();if(!title)return toast('Enter a task title',true);await api('/tasks',{method:'POST',body:{assigned_to:+$('#tm').value,title,due_date:$('#td').value}});toast('Task assigned. The member was emailed.');await loadTasks();view(true)});
+ q('[data-del]',b=>b.onclick=()=>confirm('Delete this task?')&&run(async()=>{await api('/tasks/'+b.dataset.del,{method:'DELETE'});await loadTasks();view(true)}));
+ q('[data-p]',r=>r.oninput=()=>{$('#pv'+r.dataset.p).textContent=r.value});
+ q('[data-save]',b=>b.onclick=()=>run(async()=>{const id=b.dataset.save,g=k=>document.querySelector(`[data-${k}="${id}"]`);let st=g('s').value;const p=+g('p').value;if(p===100)st='done';
+  await api('/tasks/'+id,{method:'PATCH',body:{status:st,progress:p,notes:g('n').value}});toast('Task updated. Coordinators were emailed.');await loadTasks();view(true)}))}
+VIEWS.tasks={html:tasksV,bind:tasksB,load:async()=>{await Promise.all([loadTasks(),loadWho()])}};
